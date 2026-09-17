@@ -28,7 +28,7 @@ export function buildInvestigationReport(investigationId: string) {
   limitations.push("A ausência de resultados em uma fonte não significa ausência de ocorrências — apenas que nada foi encontrado nas fontes consultadas nesta investigação.");
   limitations.push("Notícias de pessoas foram avaliadas nos últimos 12 meses e só recebem peso quando há termos de investigação, contexto da empresa/cargo e mais de uma evidência; menções nominais isoladas permanecem como alerta informativo.");
   limitations.push("Correspondência por nome, empresa e cargo pode conter homônimos. Confirme a identidade antes de qualquer decisão ou medida.");
-  limitations.push("O Índice de Risco é heurístico e explicável, não uma probabilidade estatística validada.");
+  limitations.push("Os fatores e alertas são heurísticos e servem para orientar revisão humana; não representam uma conclusão automática sobre a empresa ou qualquer pessoa.");
 
   return {
     investigation,

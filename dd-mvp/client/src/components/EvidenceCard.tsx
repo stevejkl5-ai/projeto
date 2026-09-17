@@ -1,7 +1,7 @@
 import { Evidence } from "../types";
 
 export default function EvidenceCard({ evidence }: { evidence: Evidence }) {
-  const isNewsAlert = evidence.evidence_type === "noticia_investigacao_pessoa";
+  const isNewsAlert = ["noticia_investigacao_pessoa", "noticia_investigacao_empresa"].includes(evidence.evidence_type);
   return (
     <div className="bg-panel border border-border rounded-lg p-4">
       <div className="flex items-center justify-between mb-2">

@@ -7,6 +7,7 @@ import { tcuConnector } from "./tcu";
 import { reclameAquiConnector } from "./reclameAqui";
 import { glassdoorConnector } from "./glassdoor";
 import { newsSearchConnector } from "./newsSearch";
+import { serperSearchConnector } from "./serperSearch";
 
 export const connectors: Connector[] = [
   brasilApiConnector,
@@ -16,7 +17,8 @@ export const connectors: Connector[] = [
   tcuConnector,
   reclameAquiConnector,
   glassdoorConnector,
-  newsSearchConnector
+  newsSearchConnector,
+  serperSearchConnector
 ];
 
 // Reservado para integrações comerciais futuras (Serasa, Banco do Brasil, Caixa).

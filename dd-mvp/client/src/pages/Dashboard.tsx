@@ -80,9 +80,6 @@ export default function Dashboard() {
                 <p className="text-xs text-muted">{inv.cnpj}</p>
               </div>
               <div className="flex items-center gap-3">
-                {inv.risk_score !== null && (
-                  <span className="text-sm font-mono text-muted">{inv.risk_score}/100</span>
-                )}
                 <StatusBadge status={inv.status} />
               </div>
             </button>

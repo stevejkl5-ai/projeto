@@ -24,7 +24,8 @@ export const newsSearchConnector: Connector = {
         articles: []
       });
     }
-    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=pt&sortBy=relevancy&apiKey=${apiKey}`;
+    const from = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&from=${from}&language=pt&sortBy=relevancy&pageSize=20&apiKey=${apiKey}`;
     const res = await timedFetch(this.id, url);
     if (!res.ok) return errorResult(this.id, res.error || "Falha ao consultar NewsAPI", res.ms);
     return {

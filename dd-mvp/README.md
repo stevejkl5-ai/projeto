@@ -2,7 +2,7 @@
 
 MVP funcional que transforma um CNPJ em um dossiê estruturado: dados cadastrais, quadro
 societário, investigação de sócios, OSINT, relacionamentos, evidências com fonte/URL/data,
-e um **Índice de Risco (0–100) explicável** — nunca uma afirmação categórica de "empresa boa/ruim".
+e uma análise de fatores e alertas explicáveis — nunca uma afirmação categórica de "empresa boa/ruim".
 
 ---
 
@@ -101,9 +101,13 @@ navegador. O arquivo `client/vercel.json` mantém as rotas do React funcionando 
 |---|---|---|
 | **Portal da Transparência (CGU)** | Sanções administrativas: CEIS, CNEP, CEPIM | Cadastro gratuito em https://api.portaldatransparencia.gov.br/swagger-ui.html — gera uma chave e cola em `PORTAL_TRANSPARENCIA_API_KEY` |
 | **NewsAPI.org** | Motor de OSINT (busca de notícias sobre empresa/sócios) | Cadastro gratuito em https://newsapi.org/register — cola em `NEWS_API_KEY` |
+| **Serper.dev** | Busca de notícias recentes via Google News (prioridade sobre NewsAPI) | Cadastro em https://serper.dev/ — cola em `SERPER_API_KEY` |
 
-Sem essas keys, os dois connectors funcionam normalmente mas retornam resultados **MOCK**,
+Sem essas keys, os connectors funcionam normalmente mas retornam resultados **MOCK**,
 claramente marcados na interface (badge "MOCK DATA" / "API Key necessária").
+
+Quando `SERPER_API_KEY` está configurada, o sistema usa o Serper para notícias. A NewsAPI permanece como
+fallback quando o Serper não está configurado.
 
 ### 🔶 Mockadas (sem API pública gratuita viável — documentado no código)
 
@@ -155,7 +159,7 @@ CNPJ → BrasilAPI/ReceitaWS (dados cadastrais + QSA)
      → Reclame Aqui (mock)
      → OSINT sobre a empresa (buscas correlacionadas via NewsAPI/mock)
    → Perfil de cada sócio (sanções oficiais + buscas recentes contextualizadas)
-     → Cálculo do Índice de Risco (motor explicável, pesos configuráveis)
+    → Classificação de fatores e alertas (motor explicável, pesos configuráveis)
      → Persistência de evidências, fontes, relacionamentos, timeline
      → Relatório estruturado (JSON) via GET /api/investigations/:id/report
 ```
@@ -165,17 +169,17 @@ carrega fonte, URL, data e tipo — nunca é escondida a origem da informação.
 
 ---
 
-## 7. Índice de Risco
+## 7. Fatores e alertas
 
-- Score inicial: 100. Fatores negativos e positivos (pesos em
-  `server/src/services/riskWeights.ts`, editável sem tocar no motor).
-- Faixas: 80–100 Baixo · 60–79 Atenção · 40–59 Elevado · 0–39 Crítico.
+- Os fatores são classificados como positivos ou negativos, com pesos ajustáveis em
+  `server/src/services/riskWeights.ts`.
+- A interface prioriza situação cadastral, sanções, ocorrências oficiais e notícias recentes relevantes.
 - O sistema **nunca** afirma "empresa fraudulenta/criminosa/não confiável" sem uma fonte oficial
   que estabeleça isso — e mesmo assim, atribui a informação à fonte.
 - Ausência de resultado em uma fonte é sempre apresentada como "nenhuma ocorrência encontrada
   **nas fontes consultadas**", nunca como "nenhum problema existe".
 - Sanções oficiais de pessoas são fatores separados das sanções da empresa e exigem correspondência contextual por nome, empresa e cargo.
-- Notícias de pessoas são avaliadas nos últimos 12 meses. Uma menção isolada permanece informativa; pelo menos duas notícias recentes, contextualizadas e com termos claros de investigação geram um alerta de `-8` para revisão manual.
+- Notícias de empresas e pessoas são avaliadas nos últimos 12 meses. Uma menção isolada permanece informativa; pelo menos duas notícias recentes, contextualizadas e com termos claros de investigação geram um alerta para revisão manual.
 - Notícias e correspondências nominais podem conter homônimos e não equivalem a condenação ou confirmação judicial.
 
 ---

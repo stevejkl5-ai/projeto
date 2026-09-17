@@ -1,4 +1,5 @@
 import { newsSearchConnector } from "../connectors/newsSearch";
+import { serperSearchConnector } from "../connectors/serperSearch";
 import { ConnectorResult } from "../types";
 
 /**
@@ -30,9 +31,10 @@ export class OsintEngine {
 
   async run(entityName: string, entityType: "person" | "company", context?: { companyName?: string; role?: string }): Promise<{ query: string; result: ConnectorResult }[]> {
     const queries = this.buildQueries(entityName, entityType, context);
+    const searchConnector = serperSearchConnector.isConfigured() ? serperSearchConnector : newsSearchConnector;
     const results: { query: string; result: ConnectorResult }[] = [];
     for (const q of queries) {
-      const result = await newsSearchConnector.searchPerson!(q);
+      const result = await searchConnector.searchPerson!(q);
       results.push({ query: q, result });
     }
     return results;

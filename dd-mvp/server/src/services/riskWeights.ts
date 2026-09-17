@@ -1,5 +1,5 @@
-// Pesos do Índice de Risco. Ajustáveis sem tocar no motor de cálculo (riskScore.ts).
-// IMPORTANTE: este score é heurístico e explicável, NÃO uma probabilidade estatística
+// Pesos dos fatores de atenção. Ajustáveis sem tocar no motor de classificação.
+// IMPORTANTE: estes pesos são heurísticos e explicáveis, NÃO uma probabilidade estatística
 // calibrada. Ver services/riskScore.ts para a lógica de aplicação.
 
 export const RISK_WEIGHTS = {
@@ -12,6 +12,7 @@ export const RISK_WEIGHTS = {
     sancao_pessoa: -20, // sanção oficial encontrada para pessoa, com correspondência contextual
     ocorrencia_oficial_pessoa: -15, // ocorrência oficial verificável envolvendo pessoa
     noticia_investigacao_pessoa: -8, // notícias recentes contextualizadas; nunca uma menção isolada
+    noticia_investigacao_empresa: -8, // notícias recentes relevantes sobre a empresa; nunca uma menção isolada
     informacoes_contraditorias: -10 // divergência entre fontes (ex.: BrasilAPI x ReceitaWS)
   },
   positive: {

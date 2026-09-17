@@ -7,7 +7,9 @@ import { transparenciaConnector } from "../connectors/transparencia";
 import { comprasGovConnector } from "../connectors/comprasGov";
 import { tcuConnector } from "../connectors/tcu";
 import { reclameAquiConnector } from "../connectors/reclameAqui";
+import { newsSearchConnector } from "../connectors/newsSearch";
 import { osintEngine } from "./osintEngine";
+import { serperSearchConnector } from "../connectors/serperSearch";
 import { calculateRiskScore } from "./riskScore";
 import { Evidence } from "../types";
 import { cleanCnpj } from "../connectors/base";
@@ -199,27 +201,41 @@ export async function runInvestigation(cnpjRaw: string): Promise<string> {
 
   // 7. OSINT sobre a empresa
   const osintCompanyResults = await osintEngine.run(companyData.razaoSocial, "company");
+  const companyArticleUrls = new Set<string>();
   for (const { query, result } of osintCompanyResults) {
     logApiRequest(investigationId, result.connectorId, result.status, result.responseTimeMs, result.isMock);
     const articles = result.data?.articles || [];
     if (articles.length > 0) {
       for (const a of articles.slice(0, 3)) {
+        if (a.url && companyArticleUrls.has(a.url)) continue;
+        if (a.url) companyArticleUrls.add(a.url);
+        const publishedAt = a.publishedAt || now;
+        const articleText = `${a.title || ""} ${a.description || ""} ${a.content || ""}`.toLowerCase();
+        const investigationTerms = /investiga|inquérito|inquerito|denúncia|denuncia|acusad|sancion|corrup|fraude|operação|operacao|processo|falência|falencia|recuperação judicial|recuperacao judicial|intervenção|intervencao/.test(articleText);
+        const companyContext = companyData.razaoSocial.toLowerCase();
+        const queryContext = query.toLowerCase().includes(companyContext);
+        const contextualMatch = queryContext || articleText.includes(companyContext) || articleText.includes((companyData.nomeFantasia || "").toLowerCase());
+        const recentEnough = Date.now() - new Date(publishedAt).getTime() <= 365 * 24 * 60 * 60 * 1000;
+        const evidenceType = investigationTerms && contextualMatch && recentEnough
+          ? "noticia_investigacao_empresa"
+          : "mencao_noticia";
         addEvidence({
           investigationId,
           entity: companyData.razaoSocial,
           entityType: "company",
           sourceConnectorId: result.connectorId,
-          sourceName: "Busca de notícias",
+          sourceName: result.connectorId === serperSearchConnector.id ? serperSearchConnector.name : newsSearchConnector.name,
           sourceUrl: a.url || null,
-          evidenceType: "mencao_noticia",
+          evidenceType,
           description: `Resultado para busca "${query}": ${a.title || "sem título"}.`,
-          date: a.publishedAt || now,
+          date: publishedAt,
           isMock: result.isMock
         });
       }
     }
   }
-  addSource(investigationId, "news_search", "Busca de Notícias (OSINT empresa)", osintCompanyResults[0]?.result.status || "mock", osintCompanyResults[0]?.result.isMock ?? true);
+  const newsSource = serperSearchConnector.isConfigured() ? serperSearchConnector : newsSearchConnector;
+  addSource(investigationId, newsSource.id, `${newsSource.name} (OSINT empresa)`, osintCompanyResults[0]?.result.status || "mock", osintCompanyResults[0]?.result.isMock ?? true);
 
   // 8. Investigar sócios: fontes oficiais de pessoa + OSINT contextual
   for (const socio of socios) {
@@ -284,7 +300,7 @@ export async function runInvestigation(cnpjRaw: string): Promise<string> {
           entity: socio.nome,
           entityType: "person",
           sourceConnectorId: result.connectorId,
-          sourceName: "Busca de notícias",
+          sourceName: result.connectorId === serperSearchConnector.id ? serperSearchConnector.name : newsSearchConnector.name,
           sourceUrl: a.url || null,
           evidenceType,
           description: `Resultado para busca "${query}": ${a.title || "sem título"}.`,
@@ -306,7 +322,7 @@ export async function runInvestigation(cnpjRaw: string): Promise<string> {
     );
   }
 
-  // 9. Calcular índice de risco
+  // 9. Classificar fatores de atenção
   const evidences = db
     .prepare(`SELECT * FROM evidences WHERE investigation_id = ?`)
     .all(investigationId) as any[];

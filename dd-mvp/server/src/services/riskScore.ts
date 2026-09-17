@@ -2,8 +2,8 @@ import { Evidence, RiskFactor, RiskScoreResult } from "../types";
 import { RISK_WEIGHTS, bandFor } from "./riskWeights";
 
 /**
- * Calcula o Índice de Risco (0-100) a partir das evidências coletadas.
- * O score começa em 100 e sofre deduções/adições explicáveis por fator.
+ * Classifica fatores de atenção a partir das evidências coletadas.
+ * O score interno serve apenas para ordenar a severidade dos fatores.
  * NUNCA trata ausência de evidências como prova de regularidade — apenas
  * não aplica penalidade quando não há evidência do tipo correspondente.
  */
@@ -121,6 +121,18 @@ export function calculateRiskScore(
       weight,
       category: "negative",
       evidenceIds: noticiasInvestigacaoPessoa.map((e) => e.id)
+    });
+  }
+
+  const noticiasInvestigacaoEmpresa = bySourceType("noticia_investigacao_empresa");
+  if (noticiasInvestigacaoEmpresa.length >= 2) {
+    const weight = RISK_WEIGHTS.negative.noticia_investigacao_empresa;
+    score += weight;
+    factors.push({
+      label: `${noticiasInvestigacaoEmpresa.length} notícia(s) recente(s) relevante(s) sobre a empresa; revisão manual recomendada`,
+      weight,
+      category: "negative",
+      evidenceIds: noticiasInvestigacaoEmpresa.map((e) => e.id)
     });
   }
 

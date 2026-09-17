@@ -14,6 +14,7 @@ router.post("/", validateCnpjBody, async (req, res) => {
     const investigation = db.prepare(`SELECT * FROM investigations WHERE id = ?`).get(investigationId);
     res.status(201).json(investigation);
   } catch (err: any) {
+    console.error("Falha ao executar investigação:", err);
     res.status(500).json({ error: err?.message || "Erro ao executar investigação." });
   }
 });

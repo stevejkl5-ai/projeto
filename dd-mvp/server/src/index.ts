@@ -4,6 +4,8 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import investigationsRouter from "./routes/investigations";
 import apiHubRouter from "./routes/apiHub";
+import { serperSearchConnector } from "./connectors/serperSearch";
+import { transparenciaConnector } from "./connectors/transparencia";
 import "./db"; // garante criação do schema no boot
 
 const app = express();
@@ -23,7 +25,24 @@ const limiter = rateLimit({
 });
 app.use("/api/", limiter);
 
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/", (_req, res) => {
+  res.json({
+    name: "Due Diligence API",
+    status: "ok",
+    health: "/api/health",
+    investigations: "/api/investigations"
+  });
+});
+
+app.get("/api/health", (_req, res) =>
+  res.json({
+    ok: true,
+    integrations: {
+      serper: serperSearchConnector.isConfigured(),
+      transparencia: transparenciaConnector.isConfigured()
+    }
+  })
+);
 
 app.use("/api/investigations", investigationsRouter);
 app.use("/api/api-hub", apiHubRouter);

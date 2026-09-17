@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api";
 import { InvestigationReport } from "../types";
-import RiskScoreCard from "../components/RiskScoreCard";
 import EvidenceCard from "../components/EvidenceCard";
 import StatusBadge from "../components/StatusBadge";
 
@@ -11,6 +10,7 @@ type Tab =
   | "company"
   | "people"
   | "relationships"
+  | "news"
   | "evidences"
   | "sources"
   | "timeline"
@@ -22,6 +22,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "company", label: "Empresa" },
   { id: "people", label: "Sócios" },
   { id: "relationships", label: "Relacionamentos" },
+  { id: "news", label: "Notícias e alertas" },
   { id: "evidences", label: "Evidências" },
   { id: "sources", label: "Fontes" },
   { id: "timeline", label: "Timeline" },
@@ -62,7 +63,10 @@ export default function Investigation() {
   const criticalRisks = riskFactors.filter(
     (factor) => factor.category === "negative" && !factor.label.toLowerCase().includes("notícia")
   );
-  const recentAlerts = evidences.filter((e) => e.evidence_type === "noticia_investigacao_pessoa");
+  const news = evidences.filter((e) =>
+    e.evidence_type === "mencao_noticia" ||
+    ["noticia_investigacao_pessoa", "noticia_investigacao_empresa"].includes(e.evidence_type)
+  );
   const availableSources = sources.filter((source) => source.status === "available").length;
   const confidence = !company ? "Baixa" : availableSources >= 2 ? "Alta" : "Média";
 
@@ -119,11 +123,18 @@ export default function Investigation() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-1">
-              <RiskScoreCard score={investigation.risk_score} band={investigation.risk_band} factors={riskFactors} />
+              <div className="bg-panel border border-border rounded-xl p-5 h-full">
+                <p className="text-xs uppercase tracking-wide text-muted mb-3">Sinais de atenção</p>
+                <p className="text-3xl font-semibold">{criticalRisks.length + news.filter((e) => e.evidence_type !== "mencao_noticia").length}</p>
+                <p className="text-sm text-muted mt-2">Fatos oficiais e alertas jornalísticos que merecem revisão.</p>
+                <button onClick={() => setTab("news")} className="text-accent text-sm mt-5 hover:underline">
+                  Ver notícias e alertas
+                </button>
+              </div>
             </div>
             <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <SummarySignal label="Riscos críticos" value={criticalRisks.length} tone={criticalRisks.length ? "text-red-300" : "text-emerald-300"} />
-              <SummarySignal label="Alertas recentes" value={recentAlerts.length} tone={recentAlerts.length ? "text-amber-300" : "text-emerald-300"} />
+              <SummarySignal label="Notícias encontradas" value={news.length} tone={news.length ? "text-amber-300" : "text-emerald-300"} />
               <SummarySignal label="Sócios avaliados" value={people.filter((person) => person.investigated).length} tone="text-text" />
               <SummarySignal label="Fontes consultadas" value={sources.length} tone="text-text" />
             </div>
@@ -233,6 +244,19 @@ export default function Investigation() {
         </div>
       )}
 
+      {tab === "news" && (
+        <div className="space-y-4">
+          <div className="border-b border-border pb-4">
+            <h2 className="text-lg font-semibold">Notícias e alertas</h2>
+            <p className="text-sm text-muted mt-1">Publicações encontradas sobre a empresa e os sócios nas fontes consultadas.</p>
+          </div>
+          {news.length === 0 && <p className="text-muted">Nenhuma notícia encontrada nas fontes consultadas.</p>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {news.map((e) => <EvidenceCard key={e.id} evidence={e} />)}
+          </div>
+        </div>
+      )}
+
       {tab === "evidences" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {evidences.length === 0 && <p className="text-muted">Nenhuma evidência coletada.</p>}
@@ -296,7 +320,7 @@ export default function Investigation() {
             GET /api/investigations/{investigation.id}/report
           </code>
           <p className="text-xs text-muted mt-4">
-            Este JSON reúne empresa, sócios, relacionamentos, evidências, fontes, índice de risco, timeline e
+            Este JSON reúne empresa, sócios, relacionamentos, evidências, fontes, fatores de atenção, timeline e
             limitações — pronto para exportação ou geração de PDF em uma etapa futura.
           </p>
         </div>
