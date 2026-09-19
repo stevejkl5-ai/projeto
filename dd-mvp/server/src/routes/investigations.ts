@@ -3,6 +3,7 @@ import { db } from "../db";
 import { runInvestigation } from "../services/investigationService";
 import { buildInvestigationReport } from "../services/reportService";
 import { validateCnpjBody } from "../middleware/validation";
+import investigationChatRouter from "./investigationChat";
 
 const router = Router();
 
@@ -24,6 +25,8 @@ router.get("/", (_req, res) => {
   const rows = db.prepare(`SELECT * FROM investigations ORDER BY created_at DESC LIMIT 50`).all();
   res.json(rows);
 });
+
+router.use("/:id/chat", investigationChatRouter);
 
 // GET /api/investigations/:id (visão geral completa)
 router.get("/:id", (req, res) => {

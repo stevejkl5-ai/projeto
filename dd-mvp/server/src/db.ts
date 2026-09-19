@@ -64,6 +64,22 @@ CREATE TABLE IF NOT EXISTS relationships (
   to_type TEXT NOT NULL,
   relationship_type TEXT NOT NULL, -- PARTNER_OF, OWNS, DIRECTOR_OF, WORKS_AT, RELATED_TO, MENTIONED_IN, HAS_CONTRACT, HAS_PROCESS, HAS_DOCUMENT
   source_evidence_id TEXT,
+  confidence INTEGER NOT NULL DEFAULT 100,
+  FOREIGN KEY (investigation_id) REFERENCES investigations(id)
+);
+
+CREATE TABLE IF NOT EXISTS person_profiles (
+  id TEXT PRIMARY KEY,
+  investigation_id TEXT NOT NULL,
+  person_name TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  profile_url TEXT NOT NULL,
+  status TEXT NOT NULL, -- possible | confirmed | rejected
+  confidence INTEGER NOT NULL DEFAULT 0,
+  source_connector_id TEXT NOT NULL,
+  source_name TEXT NOT NULL,
+  discovered_at TEXT NOT NULL,
+  is_mock INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (investigation_id) REFERENCES investigations(id)
 );
 
@@ -123,3 +139,9 @@ CREATE TABLE IF NOT EXISTS api_requests (
   is_mock INTEGER NOT NULL DEFAULT 0
 );
 `);
+
+// Evolucao de bancos criados antes das colunas de confianca e dos perfis.
+const relationshipColumns = db.prepare(`PRAGMA table_info(relationships)`).all() as { name: string }[];
+if (!relationshipColumns.some((column) => column.name === "confidence")) {
+  db.exec(`ALTER TABLE relationships ADD COLUMN confidence INTEGER NOT NULL DEFAULT 100`);
+}

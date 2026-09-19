@@ -39,6 +39,24 @@ export class OsintEngine {
     }
     return results;
   }
+
+  buildProfileQueries(entityName: string, context?: { companyName?: string }): string[] {
+    const companyContext = context?.companyName ? ` "${context.companyName}"` : "";
+    return [
+      `"${entityName}"${companyContext} LinkedIn`,
+      `"${entityName}"${companyContext} Instagram`,
+      `"${entityName}"${companyContext} perfil oficial`
+    ];
+  }
+
+  async runProfiles(entityName: string, context?: { companyName?: string }): Promise<{ query: string; result: ConnectorResult }[]> {
+    const searchConnector = serperSearchConnector.isConfigured() ? serperSearchConnector : newsSearchConnector;
+    const results: { query: string; result: ConnectorResult }[] = [];
+    for (const query of this.buildProfileQueries(entityName, context)) {
+      results.push({ query, result: await searchConnector.searchPerson!(query) });
+    }
+    return results;
+  }
 }
 
 export const osintEngine = new OsintEngine();

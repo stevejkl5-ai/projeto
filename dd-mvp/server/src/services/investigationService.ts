@@ -42,12 +42,27 @@ function addRelationship(
   fromType: "person" | "company",
   toEntity: string,
   toType: "person" | "company",
-  relType: string
+  relType: string,
+  sourceEvidenceId: string | null = null,
+  confidence = 100
 ) {
   db.prepare(
-    `INSERT INTO relationships (id, investigation_id, from_entity, from_type, to_entity, to_type, relationship_type)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(uuid(), investigationId, fromEntity, fromType, toEntity, toType, relType);
+    `INSERT INTO relationships (id, investigation_id, from_entity, from_type, to_entity, to_type, relationship_type, source_evidence_id, confidence)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(uuid(), investigationId, fromEntity, fromType, toEntity, toType, relType, sourceEvidenceId, confidence);
+}
+
+function detectProfilePlatform(url: string): string | null {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    if (hostname === "linkedin.com" || hostname.endsWith(".linkedin.com")) return "LinkedIn";
+    if (hostname === "instagram.com" || hostname.endsWith(".instagram.com")) return "Instagram";
+    if (hostname === "facebook.com" || hostname.endsWith(".facebook.com")) return "Facebook";
+    if (hostname === "x.com" || hostname === "twitter.com" || hostname.endsWith(".x.com")) return "X";
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function addTimelineEvent(investigationId: string, date: string, title: string, description: string) {
@@ -117,7 +132,7 @@ export async function runInvestigation(cnpjRaw: string): Promise<string> {
     JSON.stringify(brasilApiRes.status === "available" ? brasilApiRes.raw : receitaWsRes.raw)
   );
 
-  addEvidence({
+  const companyEvidence = addEvidence({
     investigationId,
     entity: companyData.razaoSocial,
     entityType: "company",
@@ -138,7 +153,7 @@ export async function runInvestigation(cnpjRaw: string): Promise<string> {
     db.prepare(
       `INSERT INTO people (id, investigation_id, name, role, investigated) VALUES (?, ?, ?, ?, 0)`
     ).run(uuid(), investigationId, socio.nome, socio.qualificacao);
-    addRelationship(investigationId, socio.nome, "person", companyData.razaoSocial, "company", "PARTNER_OF");
+    addRelationship(investigationId, socio.nome, "person", companyData.razaoSocial, "company", "PARTNER_OF", companyEvidence.id, 100);
   }
 
   // 3. Sanções administrativas (CEIS/CNEP/CEPIM) — Portal da Transparência
@@ -305,6 +320,39 @@ export async function runInvestigation(cnpjRaw: string): Promise<string> {
           evidenceType,
           description: `Resultado para busca "${query}": ${a.title || "sem título"}.`,
           date: publishedAt,
+          isMock: result.isMock
+        });
+      }
+    }
+
+    // Descoberta de perfis: resultados nominais sao candidatos e exigem validacao humana.
+    const profileResults = await osintEngine.runProfiles(socio.nome, { companyName: companyData.razaoSocial });
+    const profileUrls = new Set<string>();
+    for (const { result } of profileResults) {
+      logApiRequest(investigationId, result.connectorId, result.status, result.responseTimeMs, result.isMock);
+      for (const profile of (result.data?.articles || []).slice(0, 10)) {
+        if (!profile.url || profileUrls.has(profile.url)) continue;
+        const platform = detectProfilePlatform(profile.url);
+        if (!platform) continue;
+        profileUrls.add(profile.url);
+        db.prepare(
+          `INSERT INTO person_profiles (id, investigation_id, person_name, platform, profile_url, status, confidence, source_connector_id, source_name, discovered_at, is_mock)
+           VALUES (?, ?, ?, ?, ?, 'possible', ?, ?, ?, ?, ?)`
+        ).run(
+          uuid(), investigationId, socio.nome, platform, profile.url, 35, result.connectorId,
+          result.connectorId === serperSearchConnector.id ? serperSearchConnector.name : newsSearchConnector.name,
+          now, result.isMock ? 1 : 0
+        );
+        addEvidence({
+          investigationId,
+          entity: socio.nome,
+          entityType: "person",
+          sourceConnectorId: result.connectorId,
+          sourceName: result.connectorId === serperSearchConnector.id ? serperSearchConnector.name : newsSearchConnector.name,
+          sourceUrl: profile.url,
+          evidenceType: "rede_social_possivel",
+          description: `Possível perfil ${platform} encontrado para o nome consultado. A identidade não foi confirmada automaticamente.`,
+          date: now,
           isMock: result.isMock
         });
       }

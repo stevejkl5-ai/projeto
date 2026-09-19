@@ -7,6 +7,7 @@ export function buildInvestigationReport(investigationId: string) {
   const company = db.prepare(`SELECT * FROM companies WHERE investigation_id = ?`).get(investigationId) as any;
   const people = db.prepare(`SELECT * FROM people WHERE investigation_id = ?`).all(investigationId);
   const relationships = db.prepare(`SELECT * FROM relationships WHERE investigation_id = ?`).all(investigationId);
+  const personProfiles = db.prepare(`SELECT * FROM person_profiles WHERE investigation_id = ? ORDER BY person_name, platform`).all(investigationId);
   const evidences = db.prepare(`SELECT * FROM evidences WHERE investigation_id = ?`).all(investigationId);
   const sources = db.prepare(`SELECT * FROM sources WHERE investigation_id = ?`).all(investigationId);
   const riskFactors = db.prepare(`SELECT * FROM risk_factors WHERE investigation_id = ?`).all(investigationId);
@@ -35,6 +36,7 @@ export function buildInvestigationReport(investigationId: string) {
     company,
     people,
     relationships,
+    personProfiles,
     evidences,
     sources,
     riskFactors,
