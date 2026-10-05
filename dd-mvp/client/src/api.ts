@@ -1,4 +1,11 @@
-import { ApiHubEntry, Investigation, InvestigationReport } from "./types";
+import {
+  ApiHubEntry,
+  ComplianceChatResponse,
+  Investigation,
+  InvestigationReport,
+  MediaCoverageAnalysis,
+  PublicPersonProfileAnalysis
+} from "./types";
 
 const BASE = (import.meta.env.VITE_API_URL || "/api").replace(/\/$/, "");
 
@@ -18,10 +25,38 @@ export const api = {
       body: JSON.stringify({ cnpj })
     }).then((r) => handle(r)),
 
+  startPersonInvestigation: (cpf: string, name: string): Promise<Investigation> =>
+    fetch(`${BASE}/investigations/person`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cpf, name })
+    }).then((r) => handle(r)),
+
   listInvestigations: (): Promise<Investigation[]> => fetch(`${BASE}/investigations`).then((r) => handle(r)),
 
   getInvestigation: (id: string): Promise<InvestigationReport> =>
     fetch(`${BASE}/investigations/${id}`).then((r) => handle(r)),
+
+  askInvestigationAssistant: (id: string, question: string): Promise<ComplianceChatResponse> =>
+    fetch(`${BASE}/investigations/${id}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question })
+    }).then((r) => handle(r)),
+
+  analyzeMediaCoverage: (id: string): Promise<MediaCoverageAnalysis> =>
+    fetch(`${BASE}/investigations/${id}/chat/media-analysis`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    }).then((r) => handle(r)),
+
+  analyzePublicProfile: (id: string): Promise<PublicPersonProfileAnalysis> =>
+    fetch(`${BASE}/investigations/${id}/chat/profile-analysis`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    }).then((r) => handle(r)),
 
   getApiHub: (): Promise<ApiHubEntry[]> => fetch(`${BASE}/api-hub`).then((r) => handle(r)),
 

@@ -24,7 +24,7 @@ export default function EvidenceCard({ evidence }: { evidence: Evidence }) {
         <span>
           Entidade: <span className="text-text/80">{evidence.entity}</span>
         </span>
-        <span>{new Date(evidence.date).toLocaleDateString("pt-BR")}</span>
+        <span>{evidence.date ? new Date(evidence.date).toLocaleDateString("pt-BR") : "Data não informada"}</span>
       </div>
       <div className="flex items-center justify-between mt-2 text-xs">
         <span className="text-muted">Fonte: {evidence.source_name}</span>

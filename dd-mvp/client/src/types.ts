@@ -1,6 +1,8 @@
 export interface Investigation {
   id: string;
   cnpj: string;
+  target_type?: "company" | "person";
+  target_name?: string | null;
   company_name: string | null;
   status: "pending" | "running" | "done" | "error";
   risk_score: number | null;
@@ -45,6 +47,21 @@ export interface Relationship {
   to_entity: string;
   to_type: string;
   relationship_type: string;
+  source_evidence_id: string | null;
+  confidence: number;
+}
+
+export interface PersonProfile {
+  id: string;
+  person_name: string;
+  platform: string;
+  profile_url: string;
+  status: "possible" | "confirmed" | "rejected";
+  confidence: number;
+  source_connector_id: string;
+  source_name: string;
+  discovered_at: string;
+  is_mock: number;
 }
 
 export interface Evidence {
@@ -87,6 +104,7 @@ export interface InvestigationReport {
   company: Company | null;
   people: Person[];
   relationships: Relationship[];
+  personProfiles: PersonProfile[];
   evidences: Evidence[];
   sources: Source[];
   riskFactors: RiskFactor[];
@@ -94,6 +112,47 @@ export interface InvestigationReport {
   apiUsage: any[];
   limitations: string[];
   generatedAt: string;
+}
+
+export interface ComplianceChatResponse {
+  answer: string;
+  facts: string[];
+  inferences: string[];
+  recommendations: string[];
+  evidenceIds: string[];
+  limitations: string[];
+  needsHumanReview: boolean;
+}
+
+export interface MediaCoverageAnalysis {
+  summary: string;
+  findings: {
+    evidenceId: string;
+    coverageTone: "critical" | "supportive" | "neutral" | "unclear";
+    politicalFrame: "left" | "right" | "center" | "mixed" | "not_identified";
+    rationale: string;
+    confidence: "low" | "medium" | "high";
+  }[];
+  limitations: string[];
+}
+
+export interface PublicPersonProfileAnalysis {
+  subjectName: string;
+  summary: string;
+  biographicalFacts: {
+    claim: string;
+    evidenceId: string;
+    confidence: "low" | "medium" | "high";
+  }[];
+  publicStatements: {
+    topic: string;
+    statement: string;
+    attribution: string;
+    evidenceId: string;
+    date: string;
+    confidence: "low" | "medium" | "high";
+  }[];
+  limitations: string[];
 }
 
 export interface ApiHubEntry {
